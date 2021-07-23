@@ -16,11 +16,14 @@ def convert_exif(data):
         return float(dms_value[0] + (dms_value[1] / 60.0) + (dms_value[2] / 3600.0))
 
     lat = _dms_to_dd(data[2])
-    if data[1] == "S": lat = -1 * lat
+    if data[1] == "S":
+        lat = -1 * lat
     lon = _dms_to_dd(data[4])
-    if data[3] == "W": lon = -1 * lon
+    if data[3] == "W":
+        lon = -1 * lon
     elevation = float(data[6])
-    if data[5] == b"\x01": elevation = -1 * elevation
+    if data[5] == b"\x01":
+        elevation = -1 * elevation
 
     return (lon, lat, elevation)
 
@@ -36,4 +39,3 @@ def check_extract_exif(fname):
         exif_coords = convert_exif(exif_coords)
 
     return exif_datetime, exif_coords
-

@@ -17,24 +17,20 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import (
-    declarative_base,
-    mapper,
-    sessionmaker,
-    scoped_session
-)
+from sqlalchemy.orm import declarative_base, mapper, sessionmaker, scoped_session
 
 from utils import calc_hash, check_extract_exif
 
 Base = declarative_base()
+
 
 class LocalFile(Base):
     __tablename__ = "local_files"
     filepath = Column(Text, primary_key=True)
     file_hash_md5 = Column(Text)
     file_hash_sha1 = Column(Text)
-    added = Column(DateTime, default=text('now()'))
-    last_check = Column(DateTime, default=text('now()'))
+    added = Column(DateTime, default=text("now()"))
+    last_check = Column(DateTime, default=text("now()"))
     stillexists = Column(Boolean)
     exif_coords = Column(Geography("POINTZ", 4326))
     exif_elevation = Column(Float)
@@ -54,6 +50,7 @@ class RemoteFile(Base):
 engine = create_engine("postgresql://postgres@localhost/files")
 Base.metadata.create_all(engine)
 
+
 def update(directory="/data6/"):
     engine = create_engine("postgresql://postgres@localhost/files")
     session = scoped_session(sessionmaker(bind=engine))
@@ -61,7 +58,8 @@ def update(directory="/data6/"):
         for n in f:
             fname = os.path.join(p, n)
             fname = fname.replace("'", "\'")
-            if not os.path.isfile(fname): continue
+            if not os.path.isfile(fname):
+                continue
             file_data = {}
             file_data["file_hash_md5"] = calc_hash(fname, hashlib.md5)
             file_data["file_hash_sha1"] = calc_hash(fname, hashlib.sha1)
@@ -75,13 +73,21 @@ def update(directory="/data6/"):
                         file_data["exif_datetime"] = a
                     if b is not None:
                         file_data["exif_coords"] = b
-                        file_data["exif_coords"] = "POINTZ(%s %s %s)" % (file_data["exif_coords"][:])
+                        file_data["exif_coords"] = "POINTZ(%s %s %s)" % (
+                            file_data["exif_coords"][:]
+                        )
                 file_data["filepath"] = fname
                 input_model = {**file_data}
             else:
                 if file_data["file_hash_sha1"] != results[0].__dict__["file_hash_sha1"]:
                     raise Exception("Error matching sha1 for %s" % fname)
                 file_data["filepath"] = fname
-            stmt = insert(LocalFile).values(**file_data).on_conflict_do_update(constraint="local_files_pkey", set_={**file_data})
+            stmt = (
+                insert(LocalFile)
+                .values(**file_data)
+                .on_conflict_do_update(
+                    constraint="local_files_pkey", set_={**file_data}
+                )
+            )
             results = session.execute(stmt)
             session.commit()
